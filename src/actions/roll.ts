@@ -4,8 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import type { DropResult } from '@/types';
 
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
-
 export async function rollDice(): Promise<DropResult> {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -21,10 +19,11 @@ export async function rollDice(): Promise<DropResult> {
     .single();
 
   if (profile?.last_drop) {
-    const elapsed = Date.now() - new Date(profile.last_drop).getTime();
-    if (elapsed < COOLDOWN_MS) {
-      const remaining = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
-      throw new Error(`You must wait ${remaining} more minutes before your next drop.`);
+    const lastDrop = new Date(profile.last_drop);
+    const now = new Date();
+    const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    if (lastDrop >= todayMidnight) {
+      throw new Error('You already dropped today. Come back after midnight UTC!');
     }
   }
 

@@ -12,6 +12,7 @@ export default async function Home() {
   let canDrop = false;
   let elite: LeaderboardEntry[] = [];
   let cursed: LeaderboardEntry[] = [];
+  let userEmail: string | null = null;
 
   try {
     const supabase = await createClient();
@@ -19,6 +20,7 @@ export default async function Home() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
+      userEmail = user.email ?? null;
       const { data } = await supabase
         .from('profiles')
         .select('id, username, total_score, last_drop, active_skin')
@@ -30,8 +32,11 @@ export default async function Home() {
         if (!profile.last_drop) {
           canDrop = true;
         } else {
-          const elapsed = Date.now() - new Date(profile.last_drop).getTime();
-          canDrop = elapsed >= 24 * 60 * 60 * 1000;
+          // Can drop again after midnight UTC
+          const lastDrop = new Date(profile.last_drop);
+          const now = new Date();
+          const todayMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          canDrop = lastDrop < todayMidnight;
         }
       }
     }
@@ -62,7 +67,7 @@ export default async function Home() {
       {/* Auth header */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
         <HUD profile={profile} />
-        <AuthButton />
+        <AuthButton userEmail={userEmail} />
       </div>
 
       {/* 3D Dice scene */}

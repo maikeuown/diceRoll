@@ -1,34 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
 
-export default function AuthButton() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+interface AuthButtonProps {
+  userEmail: string | null;
+}
+
+export default function AuthButton({ userEmail }: AuthButtonProps) {
   const router = useRouter();
   const supabase = createClient();
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        router.refresh();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase, router]);
 
   const signIn = async () => {
     await supabase.auth.signInWithOAuth({
@@ -42,9 +23,7 @@ export default function AuthButton() {
     router.refresh();
   };
 
-  if (loading) return null;
-
-  if (!user) {
+  if (!userEmail) {
     return (
       <button
         onClick={signIn}
@@ -58,7 +37,7 @@ export default function AuthButton() {
   return (
     <div className="flex items-center gap-3">
       <span className="text-white/60 text-sm truncate max-w-[150px]">
-        {user.email}
+        {userEmail}
       </span>
       <button
         onClick={signOut}

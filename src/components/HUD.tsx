@@ -24,7 +24,10 @@ export default function HUD({ profile }: HUDProps) {
       return;
     }
 
-    const cooldownEnd = new Date(profile.last_drop).getTime() + 24 * 60 * 60 * 1000;
+    // Cooldown ends at next midnight UTC
+    const now = new Date();
+    const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+    const cooldownEnd = tomorrow.getTime();
 
     const update = () => {
       const remaining = cooldownEnd - Date.now();
