@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
@@ -29,10 +29,20 @@ export async function middleware(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   if (code) {
     await supabase.auth.exchangeCodeForSession(code);
-    // Redirect to clean URL without the code param
+
+    // Redirect to clean URL, carrying over the session cookies
     const url = request.nextUrl.clone();
     url.searchParams.delete('code');
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+      });
+    });
+    return redirectResponse;
   }
 
   // Refresh session if it exists
