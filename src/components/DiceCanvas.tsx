@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useCallback, Suspense, useTransition } from 'react';
+import { useState, useCallback, useEffect, Suspense, useTransition } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/cannon';
 import { Environment } from '@react-three/drei';
 import DiceScene from './DiceScene';
+import WebGLFallback from './WebGLFallback';
 import { rollDice } from '@/actions/roll';
 import type { DiceSkin, DropPhase, Profile } from '@/types';
+
+function detectWebGL(): boolean {
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    return !!gl;
+  } catch {
+    return false;
+  }
+}
 
 interface DiceCanvasProps {
   profile: Profile | null;
@@ -21,6 +32,11 @@ export default function DiceCanvas({ profile, canDrop: initialCanDrop }: DiceCan
   const [skin, setSkin] = useState<DiceSkin>(profile?.active_skin ?? 'matte');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [webglSupported, setWebglSupported] = useState(true);
+
+  useEffect(() => {
+    setWebglSupported(detectWebGL());
+  }, []);
 
   const handleDrop = useCallback(() => {
     if (!canDrop || phase === 'dropping' || phase === 'settling') return;
@@ -48,6 +64,7 @@ export default function DiceCanvas({ profile, canDrop: initialCanDrop }: DiceCan
 
   return (
     <div className="relative w-full h-full">
+      {!webglSupported && <WebGLFallback />}
       <Canvas
         shadows
         camera={{ position: [0, 22, 16], fov: 50 }}
